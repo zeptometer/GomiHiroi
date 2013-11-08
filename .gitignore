@@ -1,0 +1,6 @@
+*~
+*.o
+Kiret
+parser.c
+parser.h
+lexer.c
