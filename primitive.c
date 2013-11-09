@@ -2,62 +2,78 @@
 #include "object.h"
 #include "print.h"
 #include "eval.h"
+#include "errorutil.h"
 
 static KrtObj
-KrtPrimCar (KrtObj obj)
+KrtPrimCar (KrtObj args)
 {
-  return getCar(getCar(obj));
+  assertArity(1, false, getCar(args));
+  assertType(KRT_CONS, args);
+
+  return getCdr(args);
 }
 
 static KrtObj
-KrtPrimCdr (KrtObj obj)
+KrtPrimCdr (KrtObj args)
 {
-  return getCdr(getCar(obj));
+  assertArity(1, false, args);
+  assertType(KRT_CONS, getCar(args));
+
+  return getCdr(args);
 }
 
 static KrtObj
-KrtPrimCons (KrtObj obj)
+KrtPrimCons (KrtObj args)
 {
-  KrtObj car = getCar(obj);
-  KrtObj cdr = getCar(getCdr(obj));
+  KrtObj car, cdr;
+
+  assertArity(2, false, args);
+
+  car = getCar(args);
+  cdr = getCar(getCdr(args));
+
   return makeKrtCons(car, cdr);
 }
 
 static KrtObj
-KrtPrimList (KrtObj obj)
+KrtPrimList (KrtObj args)
 {
-  return obj;
+  return args;
 }
 
 static KrtObj
-KrtPrimIsEmpty (KrtObj obj)
+KrtPrimIsEmpty (KrtObj args)
 {
-  return makeKrtBool(getKrtType(obj) == KRT_EMPTY_LIST);
+  assertArity(1, false, args);
+  return makeKrtBool(getKrtType(args) == KRT_EMPTY_LIST);
 }
 
 static KrtObj
-KrtPrimIsPair (KrtObj obj)
+KrtPrimIsPair (KrtObj args)
 {
-  return makeKrtBool(getKrtType(obj) == KRT_CONS);
+  assertArity(1, false, args);
+  return makeKrtBool(getKrtType(args) == KRT_CONS);
 }
 
 static KrtObj
-KrtPrimIsSymbol (KrtObj obj)
+KrtPrimIsSymbol (KrtObj args)
 {
-  return makeKrtBool(getKrtType(obj) == KRT_SYMBOL);
+  assertArity(1, false, args);
+  return makeKrtBool(getKrtType(args) == KRT_SYMBOL);
 }
 
-
 static KrtObj
-KrtPrimPlus (KrtObj obj)
+KrtPrimPlus (KrtObj args)
 {
   double ans = 0;
   KrtObj num;
-  KrtObj rest = obj;
+  KrtObj rest = args;
 
   while (getKrtType(rest) != KRT_EMPTY_LIST) {
     num  = getCar(rest);
     rest = getCdr(rest);
+
+    assertType(KRT_NUMBER, num);
 
     ans += getNum(num);
   }
@@ -66,24 +82,29 @@ KrtPrimPlus (KrtObj obj)
 }
 
 static KrtObj
-KrtPrimPrint (KrtObj obj)
+KrtPrimPrint (KrtObj args)
 {
-  printKrtObj(getCar(obj));
+  assertArity(1, false, args);
+  printKrtObj(getCar(args));
   return makeKrtEmptyList();
 }
 
 
 static KrtObj
-KrtPrimSub (KrtObj obj)
+KrtPrimSub (KrtObj args)
 {
-  if (getKrtType(getCdr(obj)) == KRT_EMPTY_LIST) {
-    return makeKrtNumber(-getNum(getCar(obj)));
+  assertArity(1, false, args);
+
+  if (getKrtType(getCdr(args)) == KRT_EMPTY_LIST) {
+    return makeKrtNumber(-getNum(getCar(args)));
   } else {
-    double ans = getNum(getCar(obj));
+    double ans = getNum(getCar(args));
     KrtObj num;
-    KrtObj rest = getCdr(obj);
+    KrtObj rest = getCdr(args);
 
     while (getKrtType(rest) != KRT_EMPTY_LIST) {
+      assertType(KRT_NUMBER, num);
+
       num  = getCar(rest);
       rest = getCdr(rest);
 
@@ -95,10 +116,10 @@ KrtPrimSub (KrtObj obj)
 }
 
 static KrtObj
-KrtPrimIsEq (KrtObj obj)
+KrtPrimIsEq (KrtObj args)
 {
-  int result = getCar(obj).val.ptr == getCar(getCdr(obj)).val.ptr;
-  return makeKrtBool(result);
+  assertArity(2, false, args);
+  return makeKrtBool(getCar(args).val.ptr == getCar(getCdr(args)).val.ptr);
 }
 
 static int
@@ -129,9 +150,10 @@ isEqv (KrtObj a, KrtObj b)
 }
 
 static KrtObj
-KrtPrimIsEqv (KrtObj obj)
+KrtPrimIsEqv (KrtObj args)
 {
-  return makeKrtBool(isEqv(getCar(obj), getCar(getCdr(obj))));
+  assertArity(2, false, args);
+  return makeKrtBool(isEqv(getCar(args), getCar(getCdr(args))));
 }
 
 void

@@ -32,4 +32,4 @@ clean:
 	rm parser.c
 	rm parser.h
 	rm lexer.c
-	rm Kiret
+	rm GomiHiroi

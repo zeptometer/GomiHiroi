@@ -9,6 +9,7 @@ void yyerror (char const *);
 #include "common.h"
 #include "eval.h"
 #include "print.h"
+#include "errorutil.h"
 }
 
 %define api.value.type {KrtObj}
@@ -18,9 +19,11 @@ void yyerror (char const *);
 
 input
 :
-| input sexp { printKrtObj($2);
-               printf("\n");
-               printKrtObj(eval($2, rootEnv));
+| input sexp { if (setjmp(toplevel) == 0) {
+                 printKrtObj(eval($2, rootEnv));
+               } else {
+                 printf("#<error detected>");
+               }
                printf("\nscm> "); }
 ;
 
