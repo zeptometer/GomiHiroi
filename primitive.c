@@ -7,10 +7,10 @@
 static KrtObj
 KrtPrimCar (KrtObj args)
 {
-  assertArity(1, false, getCar(args));
-  assertType(KRT_CONS, args);
+  assertArity(1, false, args);
+  assertType(KRT_CONS, getCar(args));
 
-  return getCdr(args);
+  return getCar(getCar(args));
 }
 
 static KrtObj
@@ -19,7 +19,7 @@ KrtPrimCdr (KrtObj args)
   assertArity(1, false, args);
   assertType(KRT_CONS, getCar(args));
 
-  return getCdr(args);
+  return getCdr(getCar(args));
 }
 
 static KrtObj
@@ -45,7 +45,7 @@ static KrtObj
 KrtPrimIsEmpty (KrtObj args)
 {
   assertArity(1, false, args);
-  return makeKrtBool(getKrtType(args) == KRT_EMPTY_LIST);
+  return makeKrtBool(getKrtType(getCar(args)) == KRT_EMPTY_LIST);
 }
 
 static KrtObj
@@ -93,7 +93,7 @@ KrtPrimPrint (KrtObj args)
 static KrtObj
 KrtPrimSub (KrtObj args)
 {
-  assertArity(1, false, args);
+  assertArity(1, true, args);
 
   if (getKrtType(getCdr(args)) == KRT_EMPTY_LIST) {
     return makeKrtNumber(-getNum(getCar(args)));
@@ -103,10 +103,10 @@ KrtPrimSub (KrtObj args)
     KrtObj rest = getCdr(args);
 
     while (getKrtType(rest) != KRT_EMPTY_LIST) {
-      assertType(KRT_NUMBER, num);
-
       num  = getCar(rest);
       rest = getCdr(rest);
+
+      assertType(KRT_NUMBER, num);
 
       ans -= getNum(num);
     }

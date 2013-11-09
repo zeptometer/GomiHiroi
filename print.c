@@ -63,7 +63,7 @@ printKrtObj (KrtObj obj)
     printf("#<primtive function>");
     break;
   default:
-    printf("#<fee>");
+    printf("#<corrupted object?>");
   }
   fflush(stdout);
 }

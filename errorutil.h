@@ -13,6 +13,8 @@ enum errorlevel {
 
 void elog(enum errorlevel l, const char* format, ...);
 
+int getArgLen(KrtObj args);
+
 void assertArity (int len, int isVariable, KrtObj args);
 void assertType (KrtType type, KrtObj obj);
 

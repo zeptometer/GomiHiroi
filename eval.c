@@ -38,10 +38,6 @@ eval (KrtObj code, KrtEnv env)
   case KRT_SYMBOL:
     return getVar(code, env);
 
-  case KRT_NUMBER:
-  case KRT_BOOL:
-    return code;
-
   case KRT_CONS:
     {
       KrtObj func = eval(getCar(code), env);
@@ -63,6 +59,9 @@ eval (KrtObj code, KrtEnv env)
 	      break;
 	    }
 
+	    if (getKrtType(restarg) == KRT_EMPTY_LIST)
+	      elog(ERROR, "too few arguments");
+
 	    arg     = getCar(restarg);
 	    restarg = getCdr(restarg);
 	    sym     = getCar(restsym);
@@ -70,6 +69,9 @@ eval (KrtObj code, KrtEnv env)
 
 	    bindVar(sym, eval(arg, env), frame);
 	  }
+
+	  if (getKrtType(restarg) != KRT_EMPTY_LIST)
+	    elog(ERROR, "too much arguments");
 
 	  TAIL_CALL(getCode(func), frame);
 	}
@@ -80,37 +82,49 @@ eval (KrtObj code, KrtEnv env)
       case KRT_SYNTAX:
 	switch (getSyntaxType(func)) {
 	case KRT_SYNTAX_QUOTE:
-	  return getCar(getCdr(code));
+	  if (getArgLen(args) != 1) 
+	    elog(ERROR, "mulform quote");
+
+	  return getCar(args);
 
 	case KRT_SYNTAX_IF:
 	  {
-	    KrtObj pred = eval(getCar(args), env);
+	    int len = getArgLen(args);
+	    KrtObj pred, then, otherwize;
+
+	    if (len != 2 && len != 3)
+	      elog(ERROR, "mulform if");
+
+	    pred = eval(getCar(args), env);
+	    then = getCar(getCdr(args));
+	    otherwize = getCdr(getCdr(args));
+
+	    if (getKrtType(otherwize) != KRT_EMPTY_LIST) {
+	      assertType(KRT_CONS, otherwize);
+	      otherwize = getCar(otherwize);
+	    }
 
 	    assertType(KRT_BOOL, pred);
 
 	    if (getBool(pred)) {
-	      TAIL_CALL(getCar(getCdr(args)), env);
+	      TAIL_CALL(then, env);
 	    } else {
-	      KrtObj rest = getCdr(getCdr(args));
-	      if (getKrtType(rest) == KRT_EMPTY_LIST) {
-		return makeKrtEmptyList();
-	      } else {
-		TAIL_CALL(getCar(rest), env);
-	      }
+	      TAIL_CALL(otherwize, env);
 	    }
 	  }
 
 	case KRT_SYNTAX_LAMBDA:
 	  {
-	    KrtObj args = getCar(getCdr(code));
+	    KrtObj lambda_args = getCar(getCdr(code));
 	    KrtObj body = getCdr(getCdr(code));
 
-	    assertType(KRT_CONS, args);
+	    if (getArgLen(args) == 0 || getKrtType(getCar(args)) != KRT_CONS)
+	      elog(ERROR, "mulform lambda");
 
 	    if (getKrtType(getCdr(body)) == KRT_EMPTY_LIST)
-	      return makeKrtClosure(env, args, getCdr(body));
+	      return makeKrtClosure(env, lambda_args, getCar(body));
 	    else
-	      return makeKrtClosure(env, args, makeKrtCons(makeKrtSymbol("begin"),body));
+	      return makeKrtClosure(env, lambda_args, makeKrtCons(makeKrtSymbol("begin"),body));
 	  }
 
 	case KRT_SYNTAX_BEGIN:
@@ -127,30 +141,36 @@ eval (KrtObj code, KrtEnv env)
 
 	case KRT_SYNTAX_SET:
 	  {
-	    KrtObj var = getCar(args);
-	    KrtObj val = eval(getCar(getCdr(args)), env);
+	    KrtObj var, val;
+
+	    assertArity(2, false, args);
+
+	    var = getCar(args);
+	    val = eval(getCar(getCdr(args)), env);
 
 	    setVar(var, val, env);
-
 	    return val;
 	  }
 
 	case KRT_SYNTAX_DEFINE:
 	  {
-	    KrtObj var = getCar(args);
-	    KrtObj val = eval(getCar(getCdr(args)), env);
+	    KrtObj var, val;
+
+	    assertArity(2, false, args);
+
+	    var = getCar(args);
+	    val = eval(getCar(getCdr(args)), env);
 
 	    bindVar(var, val, env);
-
 	    return var;
 	  }
 	}
 
       default:
-	abort();
+	elog(ERROR, "non-applicable object");
       }
     }
   default:
-    abort();
+    return code;
   }
 }

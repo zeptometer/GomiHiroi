@@ -56,7 +56,8 @@ getTypeName (char* str, KrtType type)
   }
 }
 
-int getArglen (KrtObj args)
+int
+getArgLen (KrtObj args)
 {
   int n = 0;
   while (getKrtType(args) != KRT_EMPTY_LIST) {
@@ -72,7 +73,7 @@ int getArglen (KrtObj args)
 void
 assertArity (int len, int isVariable, KrtObj args)
 {
-  int arglen = getArglen(args);
+  int arglen = getArgLen(args);
   if (!((len == arglen) || (isVariable && len < arglen)))
     elog(ERROR, "wrong argument numbers");
 }

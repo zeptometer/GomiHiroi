@@ -1,7 +1,9 @@
+#include <gc.h>
 #include "common.h"
 #include "object.h"
 #include "intern.h"
 #include "print.h"
+#include "errorutil.h"
 
 /* KrtObj */
 
@@ -23,7 +25,7 @@ makeKrtEmptyList ()
 {
   KrtObj obj;
 
-  obj.type = KRT_EMPTY_LIST;
+  obj.type     = KRT_EMPTY_LIST;
   obj.val.ptr  = NULL;
 
   return obj;
@@ -32,13 +34,13 @@ makeKrtEmptyList ()
 KrtObj
 makeKrtCons (KrtObj car, KrtObj cdr)
 {
-  KrtCons* cell = (KrtCons*)GC_malloc(sizeof(KrtCons));
+  KrtCons* cell = GC_malloc(sizeof(KrtCons));
   KrtObj   obj;
 
   cell->car = car;
   cell->cdr = cdr;
 
-  obj.type = KRT_CONS;
+  obj.type    = KRT_CONS;
   obj.val.ptr = (void*)cell;
 
   return obj;
@@ -48,10 +50,10 @@ KrtObj
 makeKrtSymbol (char* name)
 {
   KrtObj obj;
-  char* sym = internString(name);
+  char*  sym = internString(name);
 
-  obj.type = KRT_SYMBOL;
-  obj.val.ptr  = (void*)sym;
+  obj.type    = KRT_SYMBOL;
+  obj.val.ptr = (void*)sym;
   
   return obj;
 }
@@ -61,7 +63,7 @@ makeKrtNumber (double val)
 {
   KrtObj obj;
  
-  obj.type = KRT_NUMBER;
+  obj.type     = KRT_NUMBER;
   obj.val.num  = val;
 
   return obj;
@@ -72,7 +74,7 @@ makeKrtBool (int val)
 {
   KrtObj obj;
 
-  obj.type = KRT_BOOL;
+  obj.type     = KRT_BOOL;
   obj.val.bool = val;
 
   return obj;
@@ -81,14 +83,14 @@ makeKrtBool (int val)
 KrtObj
 makeKrtClosure (KrtEnv env, KrtObj args, KrtObj code)
 {
-  KrtObj obj;
   KrtClosure *ptr = GC_malloc(sizeof(KrtClosure));
+  KrtObj      obj;
 
   ptr->env  = env;
   ptr->args = args;
   ptr->code = code;
 
-  obj.type = KRT_CLOSURE;
+  obj.type     = KRT_CLOSURE;
   obj.val.ptr  = (void*)ptr;
 
   return obj;
@@ -99,7 +101,7 @@ makeKrtPrimFunc (KrtPrimFunc func)
 {
   KrtObj obj;
 
-  obj.type = KRT_PRIM_FUNC;
+  obj.type    = KRT_PRIM_FUNC;
   obj.val.ptr = (void*)func;
 
   return obj;
@@ -110,7 +112,7 @@ makeKrtSyntax (KrtSyntaxType syntax)
 {
   KrtObj obj;
 
-  obj.type = KRT_SYNTAX;
+  obj.type       = KRT_SYNTAX;
   obj.val.syntax = syntax;
 
   return obj;
@@ -212,7 +214,7 @@ makeKrtEnv (KrtEnv parent)
   KrtEnv env = GC_malloc(sizeof(struct KrtEnvData));
 
   env->parent = parent;
-  env->head = NULL;
+  env->head   = NULL;
 
   return env;
 }
@@ -235,7 +237,7 @@ getVar (KrtObj sym, KrtEnv env)
     curframe = curframe->parent;
   }
 
-  abort();
+  elog(ERROR, "variable %s not found", getName(sym));
 }
 
 void
@@ -244,8 +246,8 @@ bindVar (KrtObj sym, KrtObj val, KrtEnv env)
   KrtVar var = GC_malloc(sizeof(struct KrtVarData));
   
   var->symbol = sym;
-  var->value = val;
-  var->next = env->head;
+  var->value  = val;
+  var->next   = env->head;
 
   env->head = var;
 }
