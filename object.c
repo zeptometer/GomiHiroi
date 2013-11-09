@@ -4,6 +4,7 @@
 #include "intern.h"
 #include "print.h"
 #include "errorutil.h"
+#include "gc.h"
 
 /* KrtObj */
 
@@ -34,8 +35,8 @@ makeKrtEmptyList ()
 KrtObj
 makeKrtCons (KrtObj car, KrtObj cdr)
 {
-  KrtCons* cell = GC_malloc(sizeof(KrtCons));
-  KrtObj   obj;
+  KrtObj   obj  = allocKrtObj(KRT_CONS);
+  KrtCons *cell = (KrtCons *)obj.val.ptr; 
 
   cell->car = car;
   cell->cdr = cdr;
@@ -211,7 +212,7 @@ struct KrtEnvData {
 KrtEnv
 makeKrtEnv (KrtEnv parent)
 {
-  KrtEnv env = GC_malloc(sizeof(struct KrtEnvData));
+  KrtEnv env = allocKrtEnv();
 
   env->parent = parent;
   env->head   = NULL;
