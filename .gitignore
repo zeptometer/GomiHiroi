@@ -1,6 +1,6 @@
 *~
 *.o
-Kiret
+GomiHiroi
 parser.c
 parser.h
 lexer.c
