@@ -36,12 +36,12 @@ typedef struct {
 
 /* env */
 typedef struct KrtEnvData *KrtEnv;
-KrtEnv	makeKrtEnv(KrtEnv parent);
-KrtObj	getVar(KrtObj sym, KrtEnv env);
-void	bindVar(KrtObj sym, KrtObj val, KrtEnv env);
-void	setVar(KrtObj sym, KrtObj val, KrtEnv env);
+KrtEnv	makeKrtEnv (KrtEnv parent);
+KrtObj	getVar (KrtObj sym, KrtEnv env);
+void	bindVar (KrtObj sym, KrtObj val, KrtEnv env);
+void	setVar (KrtObj sym, KrtObj val, KrtEnv env);
 
-void    printEnv(KrtEnv env);
+void    printEnv (KrtEnv env);
 
 /* constructor */
 typedef KrtObj (*KrtPrimFunc) (KrtObj);
@@ -75,5 +75,12 @@ KrtObj          getCode (KrtObj obj);
 KrtPrimFunc	getPrimFunc (KrtObj obj);
 // syntax
 KrtSyntaxType   getSyntaxType (KrtObj obj);
+
+/* garbage collection */
+KrtObj  currentCode;
+void    pushEnv(KrtEnv env);
+void    popEnv();
+void    resetEnvStack();
+void    collectGarbage();
 
 #endif

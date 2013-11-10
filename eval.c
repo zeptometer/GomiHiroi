@@ -9,6 +9,7 @@ void
 initialize ()
 {
   rootEnv = makeKrtEnv(NULL);
+  pushEnv(rootEnv);
   initialize_primitive();
 }
 
@@ -34,8 +35,11 @@ KrtObj
 eval (KrtObj code, KrtEnv env)
 {
  LOOP:
+  pushEnv(env);
+
   switch (getKrtType(code)) {
   case KRT_SYMBOL:
+    popEnv(env);
     return getVar(code, env);
 
   case KRT_CONS:
@@ -73,11 +77,16 @@ eval (KrtObj code, KrtEnv env)
 	  if (getKrtType(restarg) != KRT_EMPTY_LIST)
 	    elog(ERROR, "too much arguments");
 
+	  popEnv();
 	  TAIL_CALL(getCode(func), frame);
 	}
 
       case KRT_PRIM_FUNC:
-	return getPrimFunc(func)(eval_each(args, env));
+	{
+	  KrtObj ret = getPrimFunc(func)(eval_each(args, env));
+	  popEnv();
+	  return ret;
+	}
 
       case KRT_SYNTAX:
 	switch (getSyntaxType(func)) {
@@ -85,6 +94,7 @@ eval (KrtObj code, KrtEnv env)
 	  if (getArgLen(args) != 1) 
 	    elog(ERROR, "mulform quote");
 
+	  popEnv();
 	  return getCar(args);
 
 	case KRT_SYNTAX_IF:
@@ -107,8 +117,10 @@ eval (KrtObj code, KrtEnv env)
 	    assertType(KRT_BOOL, pred);
 
 	    if (getBool(pred)) {
+	      popEnv();
 	      TAIL_CALL(then, env);
 	    } else {
+	      popEnv();
 	      TAIL_CALL(otherwize, env);
 	    }
 	  }
@@ -117,14 +129,18 @@ eval (KrtObj code, KrtEnv env)
 	  {
 	    KrtObj lambda_args = getCar(getCdr(code));
 	    KrtObj body = getCdr(getCdr(code));
+	    KrtObj closure;
 
 	    if (getArgLen(args) == 0 || getKrtType(getCar(args)) != KRT_CONS)
 	      elog(ERROR, "mulform lambda");
 
 	    if (getKrtType(getCdr(body)) == KRT_EMPTY_LIST)
-	      return makeKrtClosure(env, lambda_args, getCar(body));
+	      closure = makeKrtClosure(env, lambda_args, getCar(body));
 	    else
-	      return makeKrtClosure(env, lambda_args, makeKrtCons(makeKrtSymbol("begin"),body));
+	      closure = makeKrtClosure(env, lambda_args, makeKrtCons(makeKrtSymbol("begin"),body));
+
+	    popEnv();
+	    return closure;
 	  }
 
 	case KRT_SYNTAX_BEGIN:
@@ -136,6 +152,7 @@ eval (KrtObj code, KrtEnv env)
 	      body = getCdr(body);
 	    }
 
+	    popEnv();
 	    TAIL_CALL(getCar(body), env);
 	  }
 
@@ -149,6 +166,8 @@ eval (KrtObj code, KrtEnv env)
 	    val = eval(getCar(getCdr(args)), env);
 
 	    setVar(var, val, env);
+
+	    popEnv();
 	    return val;
 	  }
 
@@ -162,6 +181,8 @@ eval (KrtObj code, KrtEnv env)
 	    val = eval(getCar(getCdr(args)), env);
 
 	    bindVar(var, val, env);
+
+	    popEnv();
 	    return var;
 	  }
 	}
@@ -171,6 +192,7 @@ eval (KrtObj code, KrtEnv env)
       }
     }
   default:
+    popEnv();
     return code;
   }
 }

@@ -20,11 +20,15 @@ void yyerror (char const *);
 input
 :
 | input sexp { if (setjmp(toplevel) == 0) {
+                 currentCode = $2;
                  printKrtObj(eval($2, rootEnv));
                } else {
                  printf("#<error detected>");
                }
-               printf("\nscm> "); }
+	       printf("\n");
+	       currentCode = makeKrtEmptyList();
+	       collectGarbage();
+               printf("scm> "); }
 ;
 
 sexp

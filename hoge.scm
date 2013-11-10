@@ -71,3 +71,11 @@
   (if (= n 0)
       m
       (fib (- n 1) l (+ m l))))
+
+(define fib 
+  (lambda (a)
+    (if (eqv? a 0)
+	1
+	(if (eqv? a 1)
+	    1
+	    (+ (fib (- a 1)) (fib (- a 2)))))))

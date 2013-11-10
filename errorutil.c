@@ -21,6 +21,7 @@ elog (const enum errorlevel l, const char* format, ...)
 	va_end(args);
 
 	if (l == ERROR) {
+	  resetEnvStack();
 	  longjmp(toplevel, 1);
 	}
 }
