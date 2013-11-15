@@ -2,6 +2,7 @@
 #include "object.h"
 #include "intern.h"
 #include "print.h"
+#include "gclog.h"
 #include "errorutil.h"
 
 /* gc allocate fucntinon */
@@ -225,6 +226,8 @@ makeKrtEnv (KrtEnv parent)
   env->parent = parent;
   env->head   = NULL;
 
+  logRef(env, parent);
+
   return env;
 }
 
@@ -254,7 +257,10 @@ void
 bindVar (KrtObj sym, KrtObj val, KrtEnv env)
 {
   KrtVar var = malloc(sizeof(struct KrtVarData));
-  
+
+  if (val.type == KRT_CONS || val.type == KRT_CLOSURE)
+    logRef(env, val.val.ptr);
+
   var->symbol = sym;
   var->value  = val;
   var->next   = env->head;
@@ -272,6 +278,12 @@ setVar (KrtObj sym, KrtObj val, KrtEnv env)
     
     while (curvar != NULL) {
       if (sym.val.ptr == curvar->symbol.val.ptr) {
+	if (curvar->value.type == KRT_CONS || curvar->value.type == KRT_CLOSURE)
+	  logDeref(curframe, curvar->value.val.ptr);
+
+	if (val.type == KRT_CONS || val.type == KRT_CLOSURE)
+	  logRef(curframe, val.val.ptr);
+
         curvar->value = val;
         return;
       }
@@ -362,9 +374,11 @@ allocKrtObj(KrtType type)
   switch (type) {
   case KRT_CONS:
     obj.val.ptr = malloc(sizeof(KrtCons));
+    logAlloc(obj.val.ptr, PTR_CONS);
     break;
   case KRT_CLOSURE:
     obj.val.ptr = malloc(sizeof(KrtClosure));
+    logAlloc(obj.val.ptr, PTR_CLOSURE);
     break;
   default:
     elog(LOG, "not need allocate");
@@ -379,12 +393,12 @@ static KrtEnv
 allocKrtEnv()
 {
   KrtEnv env = malloc(sizeof(struct KrtEnvData));
+  logAlloc(env, PTR_ENV);
 
   if (n_envPool == MAX_N_OBJ)
     collectGarbage();
   if (n_envPool == MAX_N_OBJ)
     elog(ERROR, "not enough memory");
-
 
   envPool[n_envPool++] = env;
   return env;
@@ -396,9 +410,11 @@ markObj (KrtObj obj)
   switch (getKrtType(obj)) {
   case KRT_CONS:
     ((KrtCons*)obj.val.ptr)->mark = true;
+    logMark(obj.val.ptr);
     break;
   case KRT_CLOSURE:
     ((KrtClosure*)obj.val.ptr)->mark = true;
+    logMark(obj.val.ptr);
     break;
   default:
     elog(ERROR, "non-markable object");
@@ -525,6 +541,7 @@ collectGarbage()
   elog(LOG, "free %d obj - holding %d obj", n_objPool-j, j);
   n_objPool = j;
 
+  logSweep();
   for (i=j=0; i<n_envPool; i++) {
     if (isMarkedEnv(envPool[i])) {
       envPool[j++] = envPool[i];

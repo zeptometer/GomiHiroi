@@ -3,6 +3,7 @@
 #include "primitive.h"
 #include "print.h"
 #include "errorutil.h"
+#include "gclog.h"
 #include "eval.h"
 
 void
