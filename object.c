@@ -226,7 +226,8 @@ makeKrtEnv (KrtEnv parent)
   env->parent = parent;
   env->head   = NULL;
 
-  logRef(env, parent);
+  if (parent)
+    logRef(env, parent);
 
   return env;
 }
