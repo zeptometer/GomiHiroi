@@ -10,6 +10,7 @@ void yyerror (char const *);
 #include "eval.h"
 #include "print.h"
 #include "errorutil.h"
+#include "gclog.h"
 }
 
 %define api.value.type {KrtObj}
@@ -58,8 +59,10 @@ void yyerror(char const *s)
 
 int main()
 {
+  init_socket(5001);
   initialize();
   printf("scm> ");
   yyparse();
+  end_socket();
   return 0;
 }

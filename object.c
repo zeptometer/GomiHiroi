@@ -452,6 +452,7 @@ isMarkedObj (KrtObj obj)
 static void
 markEnv (KrtEnv env)
 {
+  logMark(env);
   env->mark = true;
 }
 
