@@ -47,6 +47,11 @@ makeKrtCons (KrtObj car, KrtObj cdr)
   cell->car  = car;
   cell->cdr  = cdr;
 
+  if (getKrtType(car) == KRT_CONS || getKrtType(car) == KRT_CLOSURE)
+    logRef(cell, car.val.ptr);
+  if (getKrtType(cdr) == KRT_CONS || getKrtType(cdr) == KRT_CLOSURE)
+    logRef(cell, cdr.val.ptr);
+
   obj.type    = KRT_CONS;
   obj.val.ptr = (void*)cell;
 
@@ -92,6 +97,10 @@ makeKrtClosure (KrtEnv env, KrtObj args, KrtObj code)
 {
   KrtObj      obj = allocKrtObj(KRT_CLOSURE);
   KrtClosure *ptr = (KrtClosure *)obj.val.ptr;
+
+  logRef(ptr, args.val.ptr);
+  logRef(ptr, code.val.ptr);
+  logRef(ptr, env);
 
   ptr->mark = false;
   ptr->env  = env;
