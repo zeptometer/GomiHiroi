@@ -15,7 +15,7 @@ internString (char* name)
     }
   }
 
-  sym[n_syms] = GC_malloc_atomic(sizeof(char)*(1+strlen(name)));
+  sym[n_syms] = malloc(sizeof(char)*(1+strlen(name)));
   strcpy(sym[n_syms], name);
 
   if(n_syms == 99) {
