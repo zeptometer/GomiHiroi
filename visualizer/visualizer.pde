@@ -30,6 +30,10 @@ class Node {
     this.dx     = 0;
     this.dy     = 0;
   }
+
+  public String toString() {
+    return "{Node addr: " + addr + " x: " + x + " y: " + y + " dx: " + dx + " dy: " + dy + "}";
+  }
 }
 
 /*
@@ -41,15 +45,20 @@ HashMap<Long, Node> addrTable = new  HashMap<Long, Node>();
  * Node movement simulation
  */
 
-final float S = 0.5; // spring constant
-final float C = 0.2; // coulomb's constant
+final float S = 0.005; // spring constant
+final float C = 1; // coulomb's constant
+final float len = 40;
 
 void updateNodes() {
   for (Node node : addrTable.values()) {
     for (Node hoge : addrTable.values()) {
+      if (node == hoge) continue;
+
       float dst = dist(node.x, node.y, hoge.x, hoge.y);
       float dx  = hoge.x - node.x;
       float dy  = hoge.y - node.y;
+
+      if (dx == 0 && dy == 0) continue;
 
       node.dx -= C * dx/(dst*dst);
       node.dy -= C * dy/(dst*dst);
@@ -60,10 +69,12 @@ void updateNodes() {
       float dx  = ref.x - node.x;
       float dy  = ref.y - node.y;
 
-      node.dx += S * dx/(dst*dst);
-      node.dy += S * dy/(dst*dst);
-      ref.dx -= S * dx/(dst*dst);
-      ref.dy -= S * dy/(dst*dst);
+      if (dx == 0 && dy == 0) continue;
+
+      node.dx += S * (dst-len) * dx/dst;
+      node.dy += S * (dst-len) * dy/dst;
+      ref.dx  -= S * (dst-len) * dx/dst;
+      ref.dy  -= S * (dst-len) * dy/dst;
     }
   }
 
@@ -71,8 +82,13 @@ void updateNodes() {
     node.x += node.dx;
     node.y += node.dy;
 
-    node.x = constrain(node.r, node.x, width-node.r);
-    node.y = constrain(node.r, node.y, height-node.r);
+    if (node.dx != node.dx) node.dx = 0;
+    if (node.dy != node.dy) node.dy = 0;
+    node.dx *= 0.9;
+    node.dy *= 0.9;
+
+    node.x = constrain(node.x, node.r, width-node.r);
+    node.y = constrain(node.y, node.r, height-node.r);
   }
 }
 
@@ -177,7 +193,7 @@ void receive() {
   case REF: {
     long from = receiveLong();
     long to   = receiveLong();
-    System.out.printf("REF {from: %x, to: %x}\n", from, to);
+    System.out.printf("REF   {from: %x, to: %x}\n", from, to);
     opRef(from, to);
   } break;
 
@@ -191,7 +207,7 @@ void receive() {
   case MARK: {
     long addr   = receiveLong();
     byte status = receiveByte();
-    System.out.printf("MARK {addr: %x, stat: %d}\n", addr, status);
+    System.out.printf("MARK  {addr: %x, stat: %d}\n", addr, status);
     opMark(addr, status);
   } break;
 
