@@ -25,8 +25,10 @@ class Node {
     this.ref    = new ArrayList<Node>();
     this.status = NOP;
     this.r      = 5;
-    this.x      = random(this.r, width-this.r);;
-    this.y      = random(this.r, height-this.r);;
+    this.x      = random(this.r, width-this.r);
+    this.y      = random(this.r, height-this.r);
+    this.dx     = 0;
+    this.dy     = 0;
   }
 }
 
@@ -70,18 +72,18 @@ void updateNodes() {
     node.y += node.dy;
 
     node.x = constrain(node.r, node.x, width-node.r);
-    node.x = constrain(node.r, node.y, height-node.r);
+    node.y = constrain(node.r, node.y, height-node.r);
   }
 }
 
 void drawNodes() {
   for (Node node : addrTable.values()) {
     noStroke();
-    fill(256);
+    fill(130);
     ellipse(node.x, node.y, node.r, node.r);
 
     for (Node ref : node.ref) {
-      stroke(255, 50);
+      stroke(130, 50);
       line(node.x, node.y, ref.x, ref.y);
     }
   }
@@ -218,5 +220,6 @@ void draw() {
 
   updateNodes();
   background(0);
+  noStroke();
   drawNodes();
 }
