@@ -45,9 +45,9 @@ HashMap<Long, Node> addrTable = new  HashMap<Long, Node>();
  * Node movement simulation
  */
 
-final float S = 0.005; // spring constant
-final float C = 1; // coulomb's constant
-final float len = 40;
+final float S = 0.2; // spring constant
+final float C = 10; // coulomb's constant
+final float len = 10;
 
 void updateNodes() {
   for (Node node : addrTable.values()) {
@@ -58,10 +58,10 @@ void updateNodes() {
       float dx  = hoge.x - node.x;
       float dy  = hoge.y - node.y;
 
-      if (dx == 0 && dy == 0) continue;
+      if (Math.abs(dx) < 1.0 && Math.abs(dy) < 1.0) continue;
 
-      node.dx -= C * dx/(dst*dst);
-      node.dy -= C * dy/(dst*dst);
+      node.dx -= C * dx/(dst*dst*dst);
+      node.dy -= C * dy/(dst*dst*dst);
     }
 
     for (Node ref : node.ref) {
@@ -69,7 +69,7 @@ void updateNodes() {
       float dx  = ref.x - node.x;
       float dy  = ref.y - node.y;
 
-      if (dx == 0 && dy == 0) continue;
+      if (Math.abs(dx) < 1.0 && Math.abs(dy) < 1.0) continue;
 
       node.dx += S * (dst-len) * dx/dst;
       node.dy += S * (dst-len) * dy/dst;
@@ -79,13 +79,23 @@ void updateNodes() {
   }
 
   for (Node node : addrTable.values()) {
+    if (Float.isNaN(node.dx)) node.dx = 0;
+    if (Float.isNaN(node.dy)) node.dy = 0;
+
+    float dx1 = -node.x+node.r-0.1;
+    float dx2 = width-node.x-node.r+0.1;
+    float dy1 = -node.y+node.r-0.1;
+    float dy2 = height-node.y-node.r+0.1;
+    node.dx -= C * (1/dx1 + 1/dx2);
+    node.dy -= C * (1/dy1 + 1/dy2);
+    node.dx = constrain(node.dx, -20, 20);
+    node.dy = constrain(node.dy, -20, 20);
+
     node.x += node.dx;
     node.y += node.dy;
 
-    if (node.dx != node.dx) node.dx = 0;
-    if (node.dy != node.dy) node.dy = 0;
-    node.dx *= 0.9;
-    node.dy *= 0.9;
+    node.dx *= 0.5;
+    node.dy *= 0.5;
 
     node.x = constrain(node.x, node.r, width-node.r);
     node.y = constrain(node.y, node.r, height-node.r);
@@ -95,7 +105,10 @@ void updateNodes() {
 void drawNodes() {
   for (Node node : addrTable.values()) {
     noStroke();
-    fill(130);
+    if (node.status == NOP)
+      fill(130);
+    else
+      fill(50);
     ellipse(node.x, node.y, node.r, node.r);
 
     for (Node ref : node.ref) {
@@ -186,33 +199,33 @@ void receive() {
   case ALLOC: {
     int  typeid = receiveInt();
     long addr   = receiveLong();
-    System.out.printf("ALLOC {type: %d, addr: %x}\n", typeid, addr);
+    // System.out.printf("ALLOC {type: %d, addr: %x}\n", typeid, addr);
     opAlloc(typeid, addr);
   } break;
 
   case REF: {
     long from = receiveLong();
     long to   = receiveLong();
-    System.out.printf("REF   {from: %x, to: %x}\n", from, to);
+    // System.out.printf("REF   {from: %x, to: %x}\n", from, to);
     opRef(from, to);
   } break;
 
   case DEREF: {
     long from = receiveLong();
     long to   = receiveLong();
-    System.out.printf("DEREF {from: %x, to: %x}\n", from, to);
+    // System.out.printf("DEREF {from: %x, to: %x}\n", from, to);
     opDeref(from, to);
   } break;
 
   case MARK: {
     long addr   = receiveLong();
     byte status = receiveByte();
-    System.out.printf("MARK  {addr: %x, stat: %d}\n", addr, status);
+    // System.out.printf("MARK  {addr: %x, stat: %d}\n", addr, status);
     opMark(addr, status);
   } break;
 
   case SWEEP:
-    System.out.printf("SWEEP\n");
+    // System.out.printf("SWEEP\n");
     opSweep();
     break;
 
@@ -226,9 +239,14 @@ void receive() {
  * main routine
  */
 
+void setupClient() {
+  socket = new Client(this, "127.0.0.1", 5001);
+}
+
 void setup() {
   size(900, 600);
-  socket = new Client(this, "127.0.0.1", 5001);
+
+  setupClient();
 }
 
 void draw() {
