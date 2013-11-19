@@ -1,223 +1,222 @@
 import processing.net.*;
 
-final long ENV     = 0;
-final long CLOSURE = 1;
-final long CONS    = 2;
+/*
+ * Node : heap object under GC
+ */
+final byte NOP    = 0;
+final byte MARKED = 1;
+final byte ROOT   = 2;
 
-
-class MemObj {
-  public long type;
+class Node {
+  // parameter as heap object
+  public int  typeid;
   public long addr;
-  public long idx;
-  public ArrayList<MemObj> ref;
-  public boolean mark;
+  public ArrayList<Node> ref;
+  public byte status;
 
-  public MemObj(long type, long addr, long idx) {
-    this.type = type;
-    this.addr = addr;
-    this.idx  = idx;
-    this.ref  = new ArrayList<MemObj>();
-    this.mark = false;
+  // parameter as visualied node
+  public float r;
+  public float x,  y;
+  public float dx, dy;
+
+  public Node(int typeid, long addr) {
+    this.typeid = typeid;
+    this.addr   = addr;
+    this.ref    = new ArrayList<Node>();
+    this.status = NOP;
+    this.r      = 5;
+    this.x      = random(this.r, width-this.r);;
+    this.y      = random(this.r, height-this.r);;
   }
 }
 
-final int MAX_N_OBJ = 1000000;
-HashMap<Long, MemObj> table = new HashMap<Long, MemObj>();
-ArrayList<MemObj> cons    = new ArrayList<MemObj>(MAX_N_OBJ);
-ArrayList<MemObj> closure = new ArrayList<MemObj>(MAX_N_OBJ);
-ArrayList<MemObj> env     = new ArrayList<MemObj>(MAX_N_OBJ);
+/*
+ * addrTable : manage nodes
+ */
+HashMap<Long, Node> addrTable = new  HashMap<Long, Node>();
 
-void alloc (String type, long addr) {
-  if (type.equals("CONS")) {
-    long idx = cons.size();
-    MemObj obj = new MemObj(CONS, addr, idx);
-    table.put(addr, obj);
-    cons.add(obj);
+/*
+ * Node movement simulation
+ */
 
-  } else if (type.equals("CLOSURE")) {
-    long idx = closure.size();
-    MemObj obj = new MemObj(CLOSURE, addr, idx);
-    table.put(addr, obj);
-    closure.add(obj);
+final float S = 0.5; // spring constant
+final float C = 0.2; // coulomb's constant
 
-  } else if (type.equals("ENV")) {
-    long idx = env.size();
-    MemObj obj = new MemObj(ENV, addr, idx);
-    table.put(addr, obj);
-    env.add(obj);
+void updateNodes() {
+  for (Node node : addrTable.values()) {
+    for (Node hoge : addrTable.values()) {
+      float dst = dist(node.x, node.y, hoge.x, hoge.y);
+      float dx  = hoge.x - node.x;
+      float dy  = hoge.y - node.y;
 
-  } else  {
-    System.out.printf("ERROR : type%stype : %x\n", type, addr);
-    exit();
+      node.dx -= C * dx/(dst*dst);
+      node.dy -= C * dy/(dst*dst);
+    }
+
+    for (Node ref : node.ref) {
+      float dst = dist(node.x, node.y, ref.x, ref.y);
+      float dx  = ref.x - node.x;
+      float dy  = ref.y - node.y;
+
+      node.dx += S * dx/(dst*dst);
+      node.dy += S * dy/(dst*dst);
+      ref.dx -= S * dx/(dst*dst);
+      ref.dy -= S * dy/(dst*dst);
+    }
   }
 
-  System.out.printf("ALLOC : %s : %x\n", type, addr);
-}
+  for (Node node : addrTable.values()) {
+    node.x += node.dx;
+    node.y += node.dy;
 
-void ref (long from, long to) {
-  MemObj fromobj = table.get(from);
-  MemObj toobj   = table.get(to);
-
-  fromobj.ref.add(toobj);
-  System.out.printf("REF : %x : %x\n", from, to);
-}
-
-void deref (long from, long to) {
-  MemObj fromobj = table.get(from);
-  MemObj toobj   = table.get(to);
-  fromobj.ref.remove(toobj);
-  System.out.printf("DEREF : %x : %x\n", from, to);
-}
-
-void mark (long addr) {
-  table.get(addr).mark = true;
-  System.out.printf("MARK : %x\n", addr);
-}
-
-void sweep () {
-  java.util.Iterator itr = table.values().iterator();
-  while (itr.hasNext()) {
-    MemObj mo = (MemObj)itr.next();
-    if (!mo.mark)
-      itr.remove();
+    node.x = constrain(node.r, node.x, width-node.r);
+    node.x = constrain(node.r, node.y, height-node.r);
   }
-
-  ArrayList<MemObj> newcons = new ArrayList<MemObj>(MAX_N_OBJ);
-  for (MemObj mo : cons)
-    if (mo.mark) {
-      mo.mark = false;
-      mo.idx = newcons.size();
-      newcons.add(mo);
-    }
-  cons = newcons;
-
-  ArrayList<MemObj> newclosure = new ArrayList<MemObj>(MAX_N_OBJ);
-  for (MemObj mo : closure)
-    if (mo.mark) {
-      mo.mark = false;
-      mo.idx = newclosure.size();
-      newclosure.add(mo);
-    }
-  closure = newclosure;
-
-  ArrayList<MemObj> newenv = new ArrayList<MemObj>(MAX_N_OBJ);
-  for (MemObj mo : env)
-    if (mo.mark) {
-      mo.mark = false;
-      mo.idx = newenv.size();
-      newenv.add(mo);
-    }
-  env = newenv;
 }
 
-Client myClient;
+void drawNodes() {
+  for (Node node : addrTable.values()) {
+    noStroke();
+    fill(256);
+    ellipse(node.x, node.y, node.r, node.r);
+
+    for (Node ref : node.ref) {
+      stroke(255, 50);
+      line(node.x, node.y, ref.x, ref.y);
+    }
+  }
+}
+
+/*
+ * GC operation
+ */
+
+void opAlloc(int typeid, long addr) {
+  Node node = new Node(typeid, addr);
+  
+  addrTable.put(addr, node);
+}
+
+void opRef(long from, long to) {
+  Node obj = addrTable.get(from);
+  Node ref = addrTable.get(to);
+
+  obj.ref.add(ref);
+}
+
+void opDeref(long from, long to) {
+  Node obj = addrTable.get(from);
+  Node ref = addrTable.get(to);
+
+  obj.ref.remove(ref);
+}
+
+void opMark(long addr, byte status) {
+  Node obj = addrTable.get(addr);
+  
+  obj.status = status;
+}
+
+void opSweep() {
+  HashMap<Long, Node> newTable = new HashMap<Long, Node>();
+  for(Node node : addrTable.values()) {
+    if (node.status != NOP) {
+      node.status = NOP;
+      newTable.put(node.addr, node);
+    }
+  }
+  addrTable = newTable;
+}
+
+/*
+ * socket interface
+ */
+
+Client socket;
+
+final byte ALLOC = 0;
+final byte REF   = 1;
+final byte DEREF = 2;
+final byte MARK  = 3;
+final byte SWEEP = 4;
+
+byte receiveByte() {
+  return (byte)socket.readChar();
+}
+
+int receiveInt() {
+  int val = 0, j = 1;;
+  for (int i = 0; i < 4; i++, j*=256)
+    val = val + (int)socket.readChar()*j;
+  return val;
+}
+
+long receiveLong() {
+  long val = 0, j = 1;
+  for (int i = 0; i < 8; i++, j*=256)
+    val = val + (long)socket.readChar()*j;
+  return val;
+}
 
 void receive() {
-  String   op;
-  String[] ops;
-  if (myClient.available() > 0) {
-    op = myClient.readStringUntil(0);
-    op = op.substring(0, op.length()-1);
-    ops = op.split(" : ");
-    if (ops[0].equals("ALLOC")) {
-      String objtype = ops[1];
-      long    addr    = Long.parseLong(ops[2].substring(2), 16);
-      alloc(objtype, addr);
-    } else if (ops[0].equals("REF")) {
-      long from = Long.parseLong(ops[1].substring(2), 16);
-      long to   = Long.parseLong(ops[2].substring(2), 16);
-      ref(from, to);
-    } else if (ops[0].equals("DEREF")) {
-      long from = Long.parseLong(ops[1].substring(2), 16);
-      long to   = Long.parseLong(ops[2].substring(2), 16);
-      deref(from, to);
-    } else if (ops[0].equals("MARK")) {
-      long addr = Long.parseLong(ops[1].substring(2), 16);
-      mark(addr);
-    } else if (ops[0].equals("SWEEP")) {
-      sweep();
-    } else {
-      println("WARNING : unknown opcode");
-    }
+  if (socket.available() <= 0)
+    return;
+
+  byte opcode = receiveByte();
+  
+  switch (opcode) {
+  case ALLOC: {
+    int  typeid = receiveInt();
+    long addr   = receiveLong();
+    System.out.printf("ALLOC {type: %d, addr: %x}\n", typeid, addr);
+    opAlloc(typeid, addr);
+  } break;
+
+  case REF: {
+    long from = receiveLong();
+    long to   = receiveLong();
+    System.out.printf("REF {from: %x, to: %x}\n", from, to);
+    opRef(from, to);
+  } break;
+
+  case DEREF: {
+    long from = receiveLong();
+    long to   = receiveLong();
+    System.out.printf("DEREF {from: %x, to: %x}\n", from, to);
+    opDeref(from, to);
+  } break;
+
+  case MARK: {
+    long addr   = receiveLong();
+    byte status = receiveByte();
+    System.out.printf("MARK {addr: %x, stat: %d}\n", addr, status);
+    opMark(addr, status);
+  } break;
+
+  case SWEEP:
+    System.out.printf("SWEEP\n");
+    opSweep();
+    break;
+
+  default: 
+    println("ERROR: wrong opcode");
+    exit();
   }
 }
+
+/*
+ * main routine
+ */
 
 void setup() {
-  size(600, 900);
-  try {
-    Runtime.getRuntime().exec("/home/zeptometer/programs/GomiHiroi/GomiHiroi");
-  } catch (IOException e) {
-    e.printStackTrace();
-  }
-  myClient = new Client(this, "127.0.0.1", 5001);
-}
-
-void drawref(MemObj from, MemObj to) {
-  long fx, fy, tx, ty;
-  fx = from.idx/30*10+5;
-  fy = from.idx%30*10+300*from.type+5;
-  tx = to.idx/30*10+5;
-  ty = to.idx%30*10+300*to.type+5;
-
-  strokeWeight(2);
-
-  stroke(255, 50);
-  line(fx, fy, tx, ty);
-  
+  size(900, 600);
+  socket = new Client(this, "127.0.0.1", 5001);
 }
 
 void draw() {
   receive();
 
+  updateNodes();
   background(0);
-  noStroke();
-
-  for (int i=0; i<env.size(); i++) {
-    int x = i/30*10;
-    int y = i%30*10;
-    MemObj mo = env.get(i);
-
-    assert i == mo.idx;
-
-    if (mo.mark)
-      fill(52);
-    else
-      fill(102);
-      
-    rect(x, y, 10, 10);
-  }
-
-  for (int i=0; i<closure.size(); i++) {
-    int x = i/30*10;
-    int y = i%30*10+300;
-    MemObj mo = closure.get(i);
-
-    assert i == mo.idx;
-
-    if (mo.mark)
-      fill(52);
-    else
-      fill(102);
-      
-    rect(x, y, 10, 10);
-  }
-
-  for (int i=0; i<cons.size(); i++) {
-    int x = i/30*10;
-    int y = i%30*10+600;
-    MemObj mo = cons.get(i);
-    
-    assert i == mo.idx;
-    
-    if (mo.mark)
-      fill(52);
-    else
-      fill(102);
-      
-    rect(x, y, 10, 10);
-  }
-
-  for (MemObj mo : table.values())
-    for (MemObj to : mo.ref)
-      drawref(mo, to);
+  drawNodes();
 }

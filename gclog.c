@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #include "errorutil.h"
 #include "gclog.h"
@@ -58,47 +59,64 @@ end_socket()
   close(clientsocket);
 }
 
-void
-logsocket(const char* format, ...)
-{
-  char buf[100];
-  int len;
-  va_list args;
+static const char ALLOC = 0;
+static const char REF   = 1;
+static const char DEREF = 2;
+static const char MARK  = 3;
+static const char SWEEP = 4;
 
-  va_start(args, format);
-  len = vsnprintf(buf, 100, format, args);
-  va_end(args);
-
-  write(clientsocket, buf, len);
-  write(clientsocket, "", 1);
-}
+static const uint32_t ENV   = 0;
+static const uint32_t CONS  = 1;
+static const uint32_t CLOSURE = 2;
 
 void
 logAlloc(void* ptr, PTR_TYPE type)
 {
-  logsocket("ALLOC : %s : %p", typename(type), ptr);
+  uint64_t val = (uint64_t)ptr;
+  write(clientsocket, &ALLOC, 1);
+  if (type == PTR_ENV)     write(clientsocket, &ENV,     4);
+  if (type == PTR_CONS)    write(clientsocket, &CONS,    4);
+  if (type == PTR_CLOSURE) write(clientsocket, &CLOSURE, 4);
+  write(clientsocket, &val, 8);
+  elog(LOG, "ALLOC {typeid: ??, addr: %x}", val);
 }
 
 void
 logRef(void* from, void* to)
 {
-  logsocket("REF : %p : %p", from, to);
+  uint64_t f = (uint64_t)from;
+  uint64_t t = (uint64_t)to;
+  write(clientsocket, &REF, 1);
+  write(clientsocket, &from, 8);
+  write(clientsocket, &to,   8);
+  elog(LOG, "REF {from: %x to: %x}", f, t);
 }
 
 void
 logDeref(void* from, void* to)
 {
-  logsocket("DEREF : %p : %p", from, to);
+  uint64_t f = (uint64_t)from;
+  uint64_t t = (uint64_t)to;
+  write(clientsocket, &DEREF, 1);
+  write(clientsocket, &from,  8);
+  write(clientsocket, &to,    8);
+  elog(LOG, "DEREF {from: %x to: %x}", f, t);
 }
 
 void
 logMark(void* ptr)
 {
-  logsocket("MARK : %p", ptr);
+  uint64_t val = (uint64_t)ptr;
+  const static char mark = 1;
+  write(clientsocket, &MARK, 1);
+  write(clientsocket, &val,  8);
+  write(clientsocket, &mark, 1);
+  elog(LOG, "MARK {addr: %x, stat: %d}", val, mark);
 }
 
 void
 logSweep()
 {
-  logsocket("SWEEP");
+  write(clientsocket, &SWEEP, 1);
+  elog(LOG, "SWEEP");
 }
