@@ -10,9 +10,11 @@ elog (const enum errorlevel l, const char* format, ...)
 	va_list args;
 
 	if (l == LOG) {
-	  fprintf(stderr,"LOG: ");
-	} else {
+	  fprintf(stderr,"LOG  : ");
+	} else if (l == ERROR) {
 	  fprintf(stderr,"ERROR: ");
+	} else {
+	  fprintf(stderr,"FATAL: ");
 	}
 
 	va_start(args, format);
@@ -21,7 +23,10 @@ elog (const enum errorlevel l, const char* format, ...)
 	va_end(args);
 
 	if (l == ERROR) {
+	  resetEnvStack();
 	  longjmp(toplevel, 1);
+	} else if(l == FATAL) {
+	  abort();
 	}
 }
 

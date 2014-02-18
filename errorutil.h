@@ -9,6 +9,7 @@ jmp_buf toplevel;
 enum errorlevel {
   LOG,
   ERROR,
+  FATAL,
 };
 
 void elog(enum errorlevel l, const char* format, ...);

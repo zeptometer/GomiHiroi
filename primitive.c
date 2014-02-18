@@ -82,15 +82,6 @@ KrtPrimPlus (KrtObj args)
 }
 
 static KrtObj
-KrtPrimPrint (KrtObj args)
-{
-  assertArity(1, false, args);
-  printKrtObj(getCar(args));
-  return makeKrtEmptyList();
-}
-
-
-static KrtObj
 KrtPrimSub (KrtObj args)
 {
   assertArity(1, true, args);
@@ -156,6 +147,37 @@ KrtPrimIsEqv (KrtObj args)
   return makeKrtBool(isEqv(getCar(args), getCar(getCdr(args))));
 }
 
+static KrtObj
+KrtPrimIsLE (KrtObj args)
+{
+  KrtObj lhs, rhs;
+  assertArity(2, false, args);
+
+  lhs = getCar(args);
+  rhs = getCar(getCdr(args));
+
+  assertType(KRT_NUMBER, lhs);
+  assertType(KRT_NUMBER, rhs);
+
+  return makeKrtBool(getNum(lhs) <= getNum(rhs));
+}
+
+static KrtObj
+KrtPrimPrint (KrtObj args)
+{
+  assertArity(1, false, args);
+  printKrtObj(getCar(args));
+  return makeKrtEmptyList();
+}
+
+static KrtObj
+KrtPrimGC (KrtObj args)
+{
+  assertArity(0, false, args);
+  collectGarbage();
+  return makeKrtEmptyList();
+}
+
 void
 defineKrtPrimFunc (char* name, KrtPrimFunc func)
 {
@@ -192,7 +214,9 @@ void initialize_primitive()
   defineKrtPrimFunc("symbol?",KrtPrimIsSymbol);
   defineKrtPrimFunc("+",      KrtPrimPlus);
   defineKrtPrimFunc("-",      KrtPrimSub);
-  defineKrtPrimFunc("print",  KrtPrimPrint);
+  defineKrtPrimFunc("<=",     KrtPrimIsLE);
   defineKrtPrimFunc("eq?",    KrtPrimIsEq);
   defineKrtPrimFunc("eqv?",   KrtPrimIsEqv);
+  defineKrtPrimFunc("print",  KrtPrimPrint);
+  defineKrtPrimFunc("collect-garbage", KrtPrimGC);
 }

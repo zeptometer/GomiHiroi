@@ -10,6 +10,7 @@ void yyerror (char const *);
 #include "eval.h"
 #include "print.h"
 #include "errorutil.h"
+#include "gclog.h"
 }
 
 %define api.value.type {KrtObj}
@@ -20,11 +21,15 @@ void yyerror (char const *);
 input
 :
 | input sexp { if (setjmp(toplevel) == 0) {
+                 currentCode = $2;
                  printKrtObj(eval($2, rootEnv));
                } else {
                  printf("#<error detected>");
                }
-               printf("\nscm> "); }
+	       printf("\n");
+	       currentCode = makeKrtEmptyList();
+	       collectGarbage();
+               printf("scm> "); }
 ;
 
 sexp
@@ -54,8 +59,10 @@ void yyerror(char const *s)
 
 int main()
 {
+  init_socket(5001);
   initialize();
   printf("scm> ");
   yyparse();
+  end_socket();
   return 0;
 }
