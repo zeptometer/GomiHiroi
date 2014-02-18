@@ -1,19 +1,13 @@
 #ifndef GCLOG_H
 #define GCLOG_H
 
-void init_socket(int port);
-void end_socket();
+void gomihiroi_initialize(int port);
+void gomihiroi_finalize();
 
-typedef enum {
-  PTR_ENV,
-  PTR_CONS,
-  PTR_CLOSURE,
-} PTR_TYPE;
-
-void logAlloc(void* ptr, PTR_TYPE type);
-void logRef(void* from, void* to);
-void logDeref(void* from, void* to);
-void logMark(void* ptr);
-void logSweep();
+void gomihiroi_log_alloc(void* ptr, int typeid);
+void gomihiroi_log_ref(void* from, void* to);
+void gomihiroi_log_deref(void* from, void* to);
+void gomihiroi_log_mark(void* ptr);
+void gomihiroi_log_sweep();
 
 #endif
