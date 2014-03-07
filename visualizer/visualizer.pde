@@ -165,11 +165,11 @@ void opSweep() {
 
 Client socket;
 
-final byte ALLOC = 0;
-final byte REF   = 1;
-final byte DEREF = 2;
-final byte MARK  = 3;
-final byte SWEEP = 4;
+final byte ALLOC = 1;
+final byte REF   = 2;
+final byte DEREF = 3;
+final byte MARK  = 4;
+final byte SWEEP = 5;
 
 byte receiveByte() {
   return (byte)socket.readChar();
