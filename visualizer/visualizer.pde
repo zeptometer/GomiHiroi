@@ -124,6 +124,8 @@ void drawNodes() {
 
 void opAlloc(int typeid, long addr) {
   Node node = new Node(typeid, addr);
+
+  println("Alloc: "+addr);
   
   addrTable.put(addr, node);
 }
@@ -132,6 +134,17 @@ void opRef(long from, long to) {
   Node obj = addrTable.get(from);
   Node ref = addrTable.get(to);
 
+  println("Ref: "+from+"->"+to);
+
+  if (obj == null) {
+    println("no alloc: "+from);
+    return;
+  }
+  if (ref == null){
+    println("no alloc: "+to);
+    return;
+  }
+
   obj.ref.add(ref);
 }
 
@@ -139,17 +152,37 @@ void opDeref(long from, long to) {
   Node obj = addrTable.get(from);
   Node ref = addrTable.get(to);
 
+  println("Deref: "+from+"->"+to);
+
+  if (obj == null) {
+    println("no alloc: "+from);
+    return;
+  }
+  if (ref == null){
+    println("no alloc: "+to);
+    return;
+  }
+
   obj.ref.remove(ref);
 }
 
 void opMark(long addr, byte status) {
   Node obj = addrTable.get(addr);
+
+  println("Mark: "+addr);
+
+  if (obj == null) {
+    println("no alloc: "+addr);
+    return;
+  }
   
   obj.status = status;
 }
 
 void opSweep() {
+  println("Sweep");
   HashMap<Long, Node> newTable = new HashMap<Long, Node>();
+
   for(Node node : addrTable.values()) {
     if (node.status != NOP) {
       node.status = NOP;
