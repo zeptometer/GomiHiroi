@@ -103,18 +103,20 @@ void updateNodes() {
 }
 
 void drawNodes() {
+  for (Node node : addrTable.values())
+    for (Node ref : node.ref) {
+      strokeWeight(4);
+      stroke(255, 70);
+      line(node.x, node.y, ref.x, ref.y);
+    }
+
   for (Node node : addrTable.values()) {
     noStroke();
     if (node.status == NOP)
-      fill(130);
+      fill(73*node.typeid%256, 128, 200);
     else
-      fill(50);
+      fill(73*node.typeid%256, 128, 120);
     ellipse(node.x, node.y, node.r, node.r);
-
-    for (Node ref : node.ref) {
-      stroke(130, 50);
-      line(node.x, node.y, ref.x, ref.y);
-    }
   }
 }
 
