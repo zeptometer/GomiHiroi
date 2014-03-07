@@ -274,6 +274,13 @@ void receive() {
 
 void setupClient() {
   socket = new Client(this, "127.0.0.1", 5001);
+  while(!socket.active()) {
+    try {
+      Thread.sleep(3000);
+    } catch (InterruptedException e) {
+    }
+    socket = new Client(this, "127.0.0.1", 5001);
+  }
 }
 
 void setup() {
